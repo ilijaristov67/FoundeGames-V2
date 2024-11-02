@@ -17,7 +17,6 @@ class YouTubeController extends Controller
 
     public function getTranscript(Request $request)
     {
-        // Validate the video URL input
         $request->validate([
             'video_url' => 'required|url',
         ]);
@@ -29,25 +28,33 @@ class YouTubeController extends Controller
             return response()->json(['error' => 'Invalid YouTube URL'], 400);
         }
 
-        // Run Python script to fetch the transcript
         $transcript = $this->fetchTranscript($videoId);
-        if (!$transcript) {
-            return response()->json(['error' => 'Unable to fetch transcript'], 500);
+        if (!$transcript || !is_array($transcript) || empty($transcript) || !is_array($transcript[0])) {
+            return response()->json(['error' => 'Transcript data is not in the expected format'], 500);
         }
 
-        // Generate a summary using OpenAI API
+        $transcriptRecord = TranscriptVideo::create([
+            'video_id' => $videoId,
+            'video_url' => $videoUrl,
+            'transcript' => json_encode($transcript),
+        ]);
+
         $summary = $this->generateSummary($transcript);
         if (!$summary) {
             return response()->json(['error' => 'Failed to summarize transcript'], 500);
         }
 
-        // Extract keywords and timestamps
         $keywordsWithTimestamps = $this->extractKeywordsWithTimestamps($transcript);
         if (!$keywordsWithTimestamps) {
             return response()->json(['error' => 'Failed to extract keywords'], 500);
         }
 
-        // Return summary and keywords with timestamps in JSON
+        SummaryVideo::create([
+            'video_id' => $transcriptRecord->id,
+            'summary' => $summary,
+            'keywords_with_timestamps' => json_encode($keywordsWithTimestamps),
+        ]);
+
         return response()->json([
             'summary' => $summary,
             'keywords_with_timestamps' => $keywordsWithTimestamps,
@@ -76,7 +83,9 @@ class YouTubeController extends Controller
 
     private function generateSummary(array $transcript)
     {
-        $transcriptText = implode(" ", array_map(fn($t) => "[{$t['start']}] {$t['text']}", $transcript));
+        $transcriptText = implode(" ", array_map(function ($t) {
+            return isset($t['start'], $t['text']) ? "[{$t['start']}] {$t['text']}" : '';
+        }, $transcript));
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
@@ -96,7 +105,9 @@ class YouTubeController extends Controller
 
     private function extractKeywordsWithTimestamps(array $transcript)
     {
-        $transcriptText = implode(" ", array_map(fn($t) => "[{$t['start']}] {$t['text']}", $transcript));
+        $transcriptText = implode(" ", array_map(function ($t) {
+            return isset($t['start'], $t['text']) ? "[{$t['start']}] {$t['text']}" : '';
+        }, $transcript));
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
