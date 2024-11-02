@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('summary_videos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('video_id')->unique();
+            $table->string('video_id');
             $table->text('summary');
             $table->json('keywords_with_timestamps');
             $table->timestamps();
