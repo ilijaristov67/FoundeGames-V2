@@ -49,7 +49,6 @@ class YouTubeController extends Controller
             'model' => 'gpt-3.5-turbo',
             'messages' => [
                 ['role' => 'system', 'content' => 'Please analyze the transcript below and provide a JSON structure with the following format:
-
         {
         "intervals": [
         {
@@ -61,7 +60,6 @@ class YouTubeController extends Controller
         ...
         ]
         }
-
         Requirements:
         - Divide the transcript into intervals of approximately 30 seconds each, based on the timestamps in the text.
         - For each interval, extract the most important keywords or phrases, focusing on nouns and key concepts.
@@ -73,8 +71,6 @@ class YouTubeController extends Controller
             'max_tokens' => 500,
             'temperature' => 0.5,
         ]);
-
-
         if ($response->successful()) {
             $summary = $response->json('choices')[0]['message']['content'];
             return response()->json(['summary' => $summary]);
