@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transcript_videos', function (Blueprint $table) {
+        Schema::create('summary_videos', function (Blueprint $table) {
             $table->id();
-            $table->string('video_url')->unique();
-            $table->longText('transcript');
-            $table->longText('summary');
+            $table->foreignId('video_id')->unique();
+            $table->text('summary');
+            $table->json('keywords_with_timestamps');
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('transcript_videos');
+        Schema::dropIfExists('summary_videos');
     }
 };
