@@ -17,6 +17,7 @@ class YouTubeController extends Controller
 
     public function getTranscript(Request $request)
     {
+
         $request->validate([
             'video_url' => 'required|url',
         ]);
@@ -124,5 +125,13 @@ class YouTubeController extends Controller
         $keywordsData = $response->successful() ? $response->json('choices')[0]['message']['content'] : null;
 
         return $keywordsData ? json_decode($keywordsData, true) : null;
+    }
+
+    public function check()
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'successfull check'
+        ]);
     }
 }
