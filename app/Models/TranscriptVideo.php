@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class TranscriptVideo extends Model
 {
-    protected $fillable = [
-        'video_url',
-        'transcript',
-        'summary'
-    ];
+    use HasFactory;
+
+    protected $fillable = ['video_id', 'video_url', 'transcript'];
+
+    public function summary()
+    {
+        return $this->hasOne(SummaryVideo::class, 'video_id');
+    }
 }
