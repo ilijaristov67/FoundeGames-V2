@@ -62,9 +62,8 @@ class YouTubeController extends Controller
     }
     private function extractVideoId($videoUrl)
     {
-        preg_match('/(?:v=|\/)([a-zA-Z0-9_-]{11})/', $videoUrl, $matches);
+        preg_match('/[?&]v=([^&]+)/', $videoUrl, $matches);
         if (!isset($matches[1])) {
-
             Log::error('Failed to extract video ID from URL: ' . $videoUrl);
             return null;
         }
@@ -96,7 +95,7 @@ class YouTubeController extends Controller
         ])->post('https://api.openai.com/v1/chat/completions', [
             'model' => 'gpt-4',
             'messages' => [
-                ['role' => 'system', 'content' => 'Summarize this episode of Founder Games by focusing on the interactions and conversations between the characters, with minimal emphasis on brands or company details. Use character names from the episode and highlight key moments of dialogue, contrasting opinions, or collaborative efforts. The summary should begin with a title in <h3> tags and be at least 50 words but no more than 300 words. Make the summary length appropriate to the video duration, and if possible, use specific insights from the transcript to accurately represent the character dynamics. Avoid brand emphasis and focus on personal stories, decisions, or reactions among the characters.'],
+                ['role' => 'system', 'content' => 'Summarize this episode, with a focus on the key interactions, conversations, and dynamics between characters, prioritizing aspects like investments, marketing strategies, cost analysis, body language, and mentorship. Begin the summary with a title in <h3> tags and include specific character names from the episode to highlight pivotal moments of dialogue. Capture how differing perspectives on business strategies and entrepreneurship spark new ideas or decisions. Emphasize the authenticity of the interactions and mentorship exchange, showing how opinions on topics like startup investments, marketing approaches, and financial planning lead to breakthroughs or challenges. Avoid mentioning company names or products; instead, detail the essence of the discussions and insights shared by the characters. The summary should range from 50 to 300 words, with the length adjusted based on the video duration. and put the title separately so I can fetch it on frotnend'],
 
                 ['role' => 'user', 'content' => $transcriptText],
             ],
@@ -216,5 +215,10 @@ class YouTubeController extends Controller
         }
 
         return response()->json($results);
+    }
+    public function getVideos()
+    {
+        $videos = TranscriptVideo::with('summary')->get();
+        return VideoResource::collection($videos);
     }
 }

@@ -13,3 +13,4 @@ Route::get('/check', [YouTubeController::class, 'check']);
 Route::get('/getVideo/{id}', [YouTubeController::class, 'show']);
 Route::post('/search/{id}', [YouTubeController::class, 'search']);
 Route::post('/searchAll', [YouTubeController::class, 'searchAll']);
+Route::get('/allVideos', [YouTubeController::class, 'getVideos']);
