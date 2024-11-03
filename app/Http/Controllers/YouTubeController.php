@@ -143,4 +143,78 @@ class YouTubeController extends Controller
         $video = TranscriptVideo::with('summary')->findOrFail($id);
         return new VideoResource($video);
     }
+
+    public function search(Request $request, $id)
+    {
+        $request->validate([
+            'question' => 'required|string',
+        ]);
+        $question = $request->input('question');
+
+        $transcriptRow = TranscriptVideo::findOrFail($id);
+
+        $transcriptText = $transcriptRow->transcript;
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-3.5-turbo',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are provided with a question and a transcript of a YouTube video. Please analyze the transcript and extract the specific parts where the question is directly or indirectly addressed. If possible, include surrounding context to capture the complete answer, especially if it spans multiple lines. Please format the output as a list of transcript excerpts, including timestamps if available, return it in json format'
+                ],
+                ['role' => 'user', 'content' => "Question: {$question}\n\nTranscript: {$transcriptText}"],
+            ],
+            'max_tokens' => 500,
+            'temperature' => 0.2,
+        ]);
+        return $response->successful() ? $response->json('choices')[0]['message']['content'] : null;
+    }
+
+    public function searchAll(Request $request)
+    {
+        $request->validate([
+            'question' => 'required|string',
+        ]);
+
+        $question = $request->input('question');
+        $videos = TranscriptVideo::all();
+        $results = [];
+
+        foreach ($videos as $video) {
+            $transcriptText = $video->transcript;
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            ])->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-3.5-turbo',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are provided with a question and a transcript of a YouTube video. Please analyze the transcript and extract the specific parts where the question is directly addressed, including surrounding context to capture the complete answer, especially if it spans multiple lines. Only return answers where the question is directly mentioned. Format the output as a JSON object with "answer" for the answer text and "timestamp" for the start time of the answer. If the question is not discussed in the transcript, ignore this video and do not include it in the response.'
+                    ],
+                    ['role' => 'user', 'content' => "Question: {$question}\n\nTranscript: {$transcriptText}"],
+                ],
+                'max_tokens' => 500,
+                'temperature' => 0.2,
+            ]);
+
+            if ($response->successful()) {
+                $result = $response->json('choices')[0]['message']['content'];
+                $results[] = [
+                    'video_id' => $video->id,
+                    'video_url' => $video->video_url,
+                    'result' => json_decode($result, true),
+                ];
+            } else {
+                $results[] = [
+                    'video_id' => $video->id,
+                    'video_url' => $video->video_url,
+                    'result' => ['answer' => 'error retrieving data', 'timestamp' => null],
+                ];
+            }
+        }
+
+        return response()->json($results);
+    }
 }

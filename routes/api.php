@@ -11,3 +11,5 @@ Route::get('/user', function (Request $request) {
 Route::post('/getTranscript', [YouTubeController::class, 'getTranscript']);
 Route::get('/check', [YouTubeController::class, 'check']);
 Route::get('/getVideo/{id}', [YouTubeController::class, 'show']);
+Route::post('/search/{id}', [YouTubeController::class, 'search']);
+Route::post('/searchAll', [YouTubeController::class, 'searchAll']);
