@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\TranscriptVideo;
 use App\Models\SummaryVideo;
+use App\Http\Resources\TranscriptVideoResource;
+use App\Http\Resources\VideoResource;
 
 class YouTubeController extends Controller
 {
@@ -34,7 +36,6 @@ class YouTubeController extends Controller
             return response()->json(['error' => 'Transcript data is not in the expected format'], 500);
         }
 
-
         $summary = $this->generateSummary($transcript);
         if (!$summary) {
             return response()->json(['error' => 'Failed to summarize transcript'], 500);
@@ -56,23 +57,19 @@ class YouTubeController extends Controller
             'keywords_with_timestamps' => json_encode($keywordsWithTimestamps),
         ]);
 
-        return response()->json([
-            'summary' => $summary,
-            'keywords_with_timestamps' => $keywordsWithTimestamps,
-        ]);
+
+        return new TranscriptVideoResource($transcriptRecord);
     }
     private function extractVideoId($videoUrl)
     {
-        preg_match('/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|watch|.+\/\S+\/|.*[?&]v=)|(?:v|e(?:mbed)?|watch)\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $videoUrl, $matches);
-
+        preg_match('/(?:v=|\/)([a-zA-Z0-9_-]{11})/', $videoUrl, $matches);
         if (!isset($matches[1])) {
+
             Log::error('Failed to extract video ID from URL: ' . $videoUrl);
             return null;
         }
-
         return $matches[1];
     }
-
 
     private function fetchTranscript($videoId)
     {
@@ -139,5 +136,11 @@ class YouTubeController extends Controller
             'success' => true,
             'message' => 'successfull check'
         ]);
+    }
+
+    public function show($id)
+    {
+        $video = TranscriptVideo::with('summary')->findOrFail($id);
+        return new VideoResource($video);
     }
 }
