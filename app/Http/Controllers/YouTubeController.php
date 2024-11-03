@@ -34,11 +34,6 @@ class YouTubeController extends Controller
             return response()->json(['error' => 'Transcript data is not in the expected format'], 500);
         }
 
-        $transcriptRecord = TranscriptVideo::create([
-            'video_id' => $videoId,
-            'video_url' => $videoUrl,
-            'transcript' => json_encode($transcript),
-        ]);
 
         $summary = $this->generateSummary($transcript);
         if (!$summary) {
@@ -50,6 +45,11 @@ class YouTubeController extends Controller
             return response()->json(['error' => 'Failed to extract keywords'], 500);
         }
 
+        $transcriptRecord = TranscriptVideo::create([
+            'video_id' => $videoId,
+            'video_url' => $videoUrl,
+            'transcript' => json_encode($transcript),
+        ]);
         SummaryVideo::create([
             'video_id' => $transcriptRecord->id,
             'summary' => $summary,
@@ -61,12 +61,18 @@ class YouTubeController extends Controller
             'keywords_with_timestamps' => $keywordsWithTimestamps,
         ]);
     }
-
     private function extractVideoId($videoUrl)
     {
         preg_match('/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|watch|.+\/\S+\/|.*[?&]v=)|(?:v|e(?:mbed)?|watch)\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $videoUrl, $matches);
-        return $matches[1] ?? null;
+
+        if (!isset($matches[1])) {
+            Log::error('Failed to extract video ID from URL: ' . $videoUrl);
+            return null;
+        }
+
+        return $matches[1];
     }
+
 
     private function fetchTranscript($videoId)
     {
@@ -91,7 +97,7 @@ class YouTubeController extends Controller
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
         ])->post('https://api.openai.com/v1/chat/completions', [
-            'model' => 'gpt-3.5-turbo',
+            'model' => 'gpt-4',
             'messages' => [
                 ['role' => 'system', 'content' => 'Summarize this episode of Founder Games by focusing on the interactions and conversations between the characters, with minimal emphasis on brands or company details. Use character names from the episode and highlight key moments of dialogue, contrasting opinions, or collaborative efforts. The summary should begin with a title in <h3> tags and be at least 50 words but no more than 300 words. Make the summary length appropriate to the video duration, and if possible, use specific insights from the transcript to accurately represent the character dynamics. Avoid brand emphasis and focus on personal stories, decisions, or reactions among the characters.'],
 
